@@ -6,9 +6,9 @@ A simple Discord Bot using the following things:
 Check main.py and cogs/ping.py. 
 
 ## Running the Thing
-*Check/Install Python Libs from requirements.txt
-*Create a config.ini with your discord and openai token (use example.ini)
-*Run main.py
+* Check/Install Python Libs from requirements.txt
+* Create a config.ini with your discord and openai token (use example.ini)
+* Run main.py
 
 * [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]
 * [https://openai.com/]
