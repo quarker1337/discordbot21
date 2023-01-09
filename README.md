@@ -10,5 +10,6 @@ Check main.py and cogs/ping.py.
 * Create a config.ini with your discord and openai token (use example.ini)
 * Run main.py
 
+### Links
 * [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]
 * [https://openai.com/]
