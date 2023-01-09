@@ -57,10 +57,9 @@ class gptbot_test(commands.Cog):
                     name=thread_name,
                     type=ChannelType.public_thread
                 )
-            # Send the response to the channel where the command was called
+            # Send the response to the channel where the command was called, split it up in several chunks if its longer then 2000 characters. Might break formatting.
             await thread.send(f"Your Question was: {question}")
             await thread.send(f"{ctx.message.author.mention} {response}")
-
 
 
 # Define an async function that uses the OpenAI API to generate a response

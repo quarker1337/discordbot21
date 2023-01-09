@@ -58,7 +58,7 @@ async def generate_response(query):
         engine="text-davinci-003",
         prompt=prompt,
         max_tokens=2500,  # 2 * len(message.content),
-        temperature=0,
+        temperature=0.9,
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,

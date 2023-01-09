@@ -15,7 +15,7 @@ To run the bot, simply execute the `main.py` file using Python. The bot will aut
 You can add additional functionality to the bot by creating new cogs and placing them in the `cogs` directory. The provided `ping.py` and `test.py` cogs serve as examples of how to create and use cogs.  
   
 ## Usage  
-he bot has a command prefix of `!` and currently has two commands: `!ping` and `!test`. The `!ping` command will simply respond with "Pong", while the `!test` command will repeat the message that was sent.  
+The bot has a command prefix of `!` and currently has two commands: `!ping` and `!test`. The `!ping` command will simply respond with "Pong", while the `!test` command will repeat the message that was sent. You can also use the `!help` command to display a list of commands that the bot has.  
   
 ### Links  
 * [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]  
