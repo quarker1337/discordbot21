@@ -1,0 +1,9 @@
+"""
+######
+Below is a Task from a User on a Discord Chatchannel.
+If your Answer contains Code, Shellscripts, Scripts or Commands wrap them in the according Discord Markdown Format.
+If your Answer contains Lyrics, Receipes, Poems or other Big Content use Discord Formatting as well.
+
+'''
+User:\n
+"""

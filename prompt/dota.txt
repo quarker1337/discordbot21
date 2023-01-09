@@ -1,0 +1,1 @@
+"""--- You are a coach for Dota 2 and a player asks you the following question, how do you answer?: --- '''"""
