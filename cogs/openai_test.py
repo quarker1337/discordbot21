@@ -4,6 +4,8 @@ from discord import ChannelType
 import configparser
 import os
 import openai
+import textwrap
+import re
 
 # Read the OpenAI API key from the configuration file
 configfile = os.path.dirname(os.path.dirname(__file__)) + "\config.ini"
@@ -13,11 +15,10 @@ openai.api_key = config['OpenAI']['TOKEN']
 
 assistant = """
 ######
-You are openai_test, an assistant for Coders, Devops and Admins. 
-Answer the Task/Question as helpful as possible and always try to provide Code, Script or Command Examples.
+You are openai_test#2242, an assistant for Coders, Devops and Admins. 
+Answer the Task/Question as helpful as possible and always try to provide Code, Script or Command Examples. 
 
-If your Answer contains Code, Shellscripts, Scripts or Commands wrap them in the according Discord Markdown Format.
-Always use proper Discord Format in your response.
+If your Answer contains Code, Shellscripts, Scripts or Commands wrap them in the according Discord Markdown Format. When possible use Discords Markdown to highlight syntax.
 '''
 User:\n
 """
@@ -49,7 +50,25 @@ class gptbot_test(commands.Cog):
             print(output)
             response = await generate_response(assistant + output + question + "\n'''")
             print(response)
-            await ctx.send(f"{response}")
+            response_chunks = []
+            code_block_matches = re.finditer("```[^```]*```", response)
+            last_end = 0
+            for match in code_block_matches:
+                start, end = match.span()
+                # Get the text before the code block
+                before_block = response[last_end:start]
+                # Wrap the text before the code block and add it to the list of chunks
+                response_chunks.extend(textwrap.wrap(before_block, width=2000))
+                # Add the code block as a separate chunk
+                response_chunks.append(response[start:end])
+                last_end = end
+
+            # Handle the text after the last code block
+            after_block = response[last_end:]
+            response_chunks.extend(textwrap.wrap(after_block, width=2000))
+
+            for chunk in response_chunks:
+                await ctx.send(chunk)
         else:
             response = await generate_response(assistant + question + "\n'''")
             thread_name = question[:20]
@@ -59,7 +78,25 @@ class gptbot_test(commands.Cog):
                 )
             # Send the response to the channel where the command was called, split it up in several chunks if its longer then 2000 characters. Might break formatting.
             await thread.send(f"Your Question was: {question}")
-            await thread.send(f"{ctx.message.author.mention} {response}")
+            response_chunks = []
+            code_block_matches = re.finditer("```[^```]*```", response)
+            last_end = 0
+            for match in code_block_matches:
+                start, end = match.span()
+                # Get the text before the code block
+                before_block = response[last_end:start]
+                # Wrap the text before the code block and add it to the list of chunks
+                response_chunks.extend(textwrap.wrap(before_block, width=2000))
+                # Add the code block as a separate chunk
+                response_chunks.append(response[start:end])
+                last_end = end
+
+            # Handle the text after the last code block
+            after_block = response[last_end:]
+            response_chunks.extend(textwrap.wrap(after_block, width=2000))
+
+            for chunk in response_chunks:
+                await thread.send(chunk)
 
 
 # Define an async function that uses the OpenAI API to generate a response
@@ -70,11 +107,11 @@ async def generate_response(query):
     completions = openai.Completion.create(
         engine="text-davinci-003",
         prompt=prompt,
-        max_tokens=2500,  # 2 * len(message.content),
-        temperature=0.9,
+        max_tokens=1500,  # 2 * len(message.content),
+        temperature=0.8,
         top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
+        frequency_penalty=0.05,
+        presence_penalty=0.001,
     )
     print(completions)
     message = completions["choices"][0]["text"]
@@ -86,6 +123,7 @@ async def content_policy_check(question):
     response = openai.Moderation.create(
         input=question,
     )
+    print(response)
     if response["results"][0]["flagged"] == True:
         return True
     else:
