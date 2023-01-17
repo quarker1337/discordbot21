@@ -3,6 +3,13 @@ import os
 import discord
 from discord.ext import commands
 import configparser
+import logging
+from lib.utils import (
+    logger,
+)
+#format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s"
+logging.basicConfig(filename='example.log', encoding='utf-8', format="[%(asctime)s] %(message)s", level=logging.INFO)
+
 
 # Read the bot's configuration from a file called 'config.ini'
 config = configparser.ConfigParser()
@@ -25,7 +32,10 @@ discord_token = config['DISCORD']['TOKEN']
 async def load():
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
-            await bot.load_extension(f'cogs.{filename[:-3]}')
+            extension = f'cogs.{filename[:-3]}'
+            logger.info(f'Loading extension {extension}...')
+            await bot.load_extension(extension)
+    logger.info("All the cogs are Loaded")
 
 # Define an async function that runs the 'load' function and then
 # starts the bot using the 'discord_token'
