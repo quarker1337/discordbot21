@@ -53,7 +53,7 @@ The bot has a command prefix of `!` and currently has two commands: `!ping` and 
 
 This repository includes code from the following third-party libraries:
 
-- [OpenAI GPT-Discord-Bot](https://github.com/openai/gpt-discord-bot/blob/main/README.md)
+- [OpenAI GPT-Discord-Bot](https://github.com/openai/gpt-discord-bot/)
   - `src/main.py`: Used in `cogs/quarks.py`
   - `src/*.py`: Used in `lib/*.py`
   - `src/config.yaml`: Used in `lib/config.yaml`
@@ -65,4 +65,3 @@ This code is used under the terms of the MIT License, a copy of which can be fou
 * [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]  
 * [https://openai.com/]
 * [https://beta.openai.com/docs/introduction]
-* [https://github.com/openai/gpt-discord-bot/blob/main/README.md]
