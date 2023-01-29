@@ -10,7 +10,7 @@ from lib.utils import (
 from lib.constants import (
     WEAVICLIENT,
     ADMINUSER,
-    SYSTEMCHANNEL,
+    IGNORECHANNEL,
     EXAMPLESCHANNEL,
 )
 
@@ -26,7 +26,9 @@ class db(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         logger.info(f"Message_ID: {message.id} Author: {message.author.id} Content: {message.content}")
-        if message.channel.id not in SYSTEMCHANNEL:
+        """
+        # This Saves basically every Message outside of some Channels:
+        if message.channel.id not in IGNORECHANNEL:
             if message.author.id == ADMINUSER:
                 message_obj = {
                     "messageID": message.id,
@@ -38,6 +40,7 @@ class db(commands.Cog):
                     data_object = message_obj,
                     class_name = "Messages",
                 )
+        """
         # Function to Save Messages in Example Conversation
         if message.channel.id in EXAMPLESCHANNEL:
             if message.author.id == ADMINUSER:
@@ -54,6 +57,7 @@ class db(commands.Cog):
                 logger.info(f"Written new Examples Object with ID {message.id}")
 
     # Define the DB Commmand
+    @commands.has_permissions(administrator=True)
     @commands.command(description="does things", brief="does things")
     async def dbobjects(self, ctx, prompt=None):
         if ctx.message.author.id == ADMINUSER:
@@ -86,6 +90,7 @@ class db(commands.Cog):
         else:
             await ctx.send("Not authorized to use commmand")
 
+    @commands.has_permissions(administrator=True)
     @commands.command(description="does things", brief="does things")
     async def dbexamples(self, ctx, prompt=None):
         if ctx.message.author.id == ADMINUSER:
@@ -109,6 +114,31 @@ class db(commands.Cog):
         else:
             await ctx.send("Not authorized to use commmand")
 
+    @commands.has_permissions(administrator=True)
+    @commands.command(description="does things", brief="does things")
+    async def dbmemorys(self, ctx, prompt=None):
+        if ctx.message.author.id == ADMINUSER:
+            if prompt is None:
+                memorys = listmemorys()
+                testresult = (
+                    client.query
+                    .aggregate('Memorys')
+                    .with_meta_count()
+                    .do()
+                )
+                await ctx.send(f"```{testresult}```")
+                await ctx.send(f">>> **Memorys:** {memorys}")
+            else:
+                outputN = listnearmemorys(prompt)
+                resultN_list = [[message["title"], message["content"]] for message in
+                                outputN["data"]["Get"]["Memorys"]]
+                for message in resultN_list:
+                    await ctx.send(f">>> Memorys:")
+                    await ctx.send(f">>> **Title:** {message[0]} \n **Content:** {message[1]}")
+        else:
+            await ctx.send("Not authorized to use commmand")
+
+    @commands.has_permissions(administrator=True)
     @commands.command(description="does things", brief="does things")
     async def db(self, ctx, prompt: str):
         # only let me run this command
@@ -128,6 +158,7 @@ class db(commands.Cog):
         else:
             await ctx.send("Not authorized to use commmand")
 
+    @commands.has_permissions(administrator=True)
     @commands.command(description="does things", brief="does things")
     async def spacy(self, ctx, prompt=None):
         if ctx.message.author.id != ADMINUSER:
@@ -164,6 +195,26 @@ class db(commands.Cog):
 # New Schema Create Function, this only needs to run once!
 def createschema():
     # Creating Basic Schema that we need to save Example Conversations
+    memory_class_obj = {
+        "class": "Memorys",
+        "description": "Example Conversations",
+        "properties": [
+            {
+                "dataType": [
+                    "string"
+                ],
+                "description": "Title of Memory",
+                "name": "Title"
+            },
+            {
+                "dataType": [
+                    "string"
+                ],
+                "description": "Memory Content",
+                "name": "Content"
+            }
+        ]
+    }
     example_class_obj = {
         "class": "Examples",
         "description": "Example Conversations",
@@ -181,6 +232,40 @@ def createschema():
                 ],
                 "description": "Example Conversation",
                 "name": "Content"
+            }
+        ]
+
+    }
+    web_summarys_class_obj = {
+        "class": "WebExtract",
+        "description": "Website Text Extractions",
+        "properties": [
+            {
+                "dataType": [
+                    "number"
+                ],
+                "description": "messageID",
+                "name": "messageID"
+            },
+            {
+                "dataType": [
+                    "string"
+                ],
+                "description": "Raw Content that got extracted",
+                "name": "raw",
+                "moduleConfig": {
+                    "text2vec-transformers": {
+                        "vectorizePropertyName": "false",
+                        "skip": "true"
+                        }
+                }
+            },
+            {
+                "dataType": [
+                    "string"
+                ],
+                "description": "Fact List",
+                "name": "facts"
             }
         ]
 
@@ -280,7 +365,8 @@ def createschema():
     client.schema.create_class(channel_class_obj)
     client.schema.create_class(users_class_obj)
     client.schema.create_class(messages_class_obj)
-
+    client.schema.create_class(web_summarys_class_obj)
+    client.schema.create_class(memory_class_obj)
 # Create Cross-References
 
 
@@ -305,6 +391,7 @@ def listmessages():
     result= client.query.raw(query)
     return result
 
+
 def listexamples():
     query = """
     {
@@ -317,6 +404,26 @@ def listexamples():
                 }]
           ){
          messageID
+         content
+         }
+        }
+    }
+    """
+    result= client.query.raw(query)
+    return result
+
+def listmemorys():
+    query = """
+    {
+        Get {
+         Memorys(
+            limit: 3
+            sort: [{
+                path: ["_lastUpdateTimeUnix"]
+                order: desc
+                }]
+          ){
+         title
          content
          }
         }
@@ -351,6 +458,22 @@ def listnear(question):
         .get('Messages', ['messageID', 'content'])
         .with_near_text(nearText)
         .with_limit(3)
+        .do()
+    )
+
+    print(result)
+    return result
+
+def listnearmemorys(question):
+    nearText = {
+        "concepts": [question],
+        "distance": 0.7,  # prior to v1.14 use "certainty" instead of "distance"
+    }
+    result = (
+        client.query
+        .get('Memorys', ['title', 'content'])
+        .with_near_text(nearText)
+        .with_limit(5)
         .do()
     )
 

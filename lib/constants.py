@@ -16,8 +16,7 @@ load_dotenv()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(SCRIPT_DIR, "config.yaml"), "r") as file:
     CONFIG = dacite.from_dict(Config, yaml.safe_load(file))
-
-# load config File
+# load config.ini File
 configfile = os.path.dirname(os.path.dirname(__file__)) + "/config.ini"
 config = configparser.ConfigParser()
 config.read(configfile)
@@ -27,16 +26,34 @@ WEAVICLIENT = weaviate.Client(config['WEAVIATE']['URL'])
 
 # ADMINSTUFF
 ADMINUSER = int(config['GENERAL']['ADMIN_ID'])
-SYSTEMCHANNEL = config['GENERAL']['SYSTEMCHANNEL'].split(',')
-SYSTEMCHANNEL = [int(x.strip()) for x in SYSTEMCHANNEL]
+#SYSTEMCHANNEL = config['GENERAL']['SYSTEMCHANNEL'].split(',')
+#SYSTEMCHANNEL = [int(x.strip()) for x in SYSTEMCHANNEL]
 EXAMPLESCHANNEL = config['GENERAL']['EXAMPLESCHANNEL'].split(',')
 EXAMPLESCHANNEL = [int(x.strip()) for x in EXAMPLESCHANNEL]
+IGNORECHANNEL = config['GENERAL']['IGNORECHANNEL'].split(',')
+IGNORECHANNEL = [int(x.strip()) for x in IGNORECHANNEL]
+
 
 # gpt-discord-bot Default Settings
 BOT_NAME = CONFIG.name
 BOT_INSTRUCTIONS = CONFIG.instructions
 EXAMPLE_CONVOS = CONFIG.example_conversations
 
+# quark-decision engine Settings
+QUERY_INSTRUCTIONS = CONFIG.query_instructions
+QUERY_EXAMPLES = CONFIG.query_examples
+
+ENCODER_INSTRUCTIONS = CONFIG.encoder_instructions
+ENCODER_EXAMPLES = CONFIG.encoder_examples
+
+DECODER_INSTRUCTIONS = CONFIG.decoder_instructions
+DECODER_EXAMPLES = CONFIG.decoder_examples
+
+# Google API Keys
+GAPIKEY = config['GOOGLE']['GOOGLEAPIKEY']
+GAPIID = config['GOOGLE']['GOOGLE_CUSTOMSEARCH_ID']
+
+# Discord Stuff
 DISCORD_BOT_TOKEN = config['DISCORD']['TOKEN']
 DISCORD_CLIENT_ID = config['DISCORD']['CLIENT_ID']
 OPENAI_API_KEY = config['OpenAI']['TOKEN']
@@ -51,6 +68,13 @@ server_channels = config['OpenAI']['MOD_CHANNELS'].split(",")
 for s in server_channels:
     values = s.split(":")
     SERVER_TO_MODERATION_CHANNEL[int(values[0])] = int(values[1])
+
+SERVER_TO_SYSTEMCHANNEL: Dict[int, int] = {}
+sysserver_channels = config['GENERAL']['SYSTEMCHANNEL'].split(",")
+for s in sysserver_channels:
+    values = s.split(":")
+    SERVER_TO_SYSTEMCHANNEL[int(values[0])] = int(values[1])
+
 
 # Send Messages, Create Public Threads, Send Messages in Threads, Manage Messages, Manage Threads, Read Message History, Use Slash Command
 BOT_INVITE_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions=328565073920&scope=bot"

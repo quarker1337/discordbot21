@@ -2,19 +2,27 @@ from enum import Enum
 import datetime
 import dacite
 import yaml
+import asyncio
 from dataclasses import dataclass
 import openai
 from lib.moderation import moderate_message
 from typing import Optional, List
+from lib.websearch import websearch
 from lib.constants import (
     BOT_INSTRUCTIONS,
     BOT_NAME,
     WEAVICLIENT,
     EXAMPLE_CONVOS,
+    QUERY_INSTRUCTIONS,
+    QUERY_EXAMPLES,
+    ENCODER_EXAMPLES,
+    ENCODER_INSTRUCTIONS,
+    DECODER_INSTRUCTIONS,
+    DECODER_EXAMPLES
 )
 import discord
-from lib.base import Message, Prompt, Conversation, Config
-from lib.utils import split_into_shorter_messages, close_thread, logger
+from lib.base import Message, Prompt, Conversation, Config, QueryPrompt, Websearch, Memory
+from lib.utils import split_into_shorter_messages, close_thread, logger, send_usage
 from lib.moderation import (
     send_moderation_flagged_message,
     send_moderation_blocked_message,
@@ -22,6 +30,7 @@ from lib.moderation import (
 MY_BOT_EXAMPLE_CONVOS = EXAMPLE_CONVOS
 MY_BOT_NAME = BOT_NAME
 
+client = WEAVICLIENT
 
 class CompletionResult(Enum):
     OK = 0
@@ -37,9 +46,221 @@ class CompletionData:
     status: CompletionResult
     reply_text: Optional[str]
     status_text: Optional[str]
+    tokens: Optional[int]
 
+
+
+## Decision Routine
+async def querygenerator(messages: List[Message]):
+    #### Time to build a Custom Prompt to ask GPT3 what Searchterms could be used to gather Information about our last message.
+    EXAMPLES = []
+    messages = messages[-1:]
+    print(messages)
+    for c in QUERY_EXAMPLES:
+        example_messages = []
+        for m in c.messages:
+            if m.user == "Lenard":
+                example_messages.append(Message(user=MY_BOT_NAME, text=m.text))
+            else:
+                example_messages.append(m)
+        EXAMPLES.append(Conversation(messages=example_messages))
+    logger.info(f"DEBUG Messages: {messages}")
+    querygenerator = QueryPrompt(
+        header=Message(
+            "System", f"Instructions for {MY_BOT_NAME}: {QUERY_INSTRUCTIONS}"
+        ),
+        examples=EXAMPLES,
+        convo=Conversation(messages + [Message(MY_BOT_NAME)]),
+    )
+    rendered = querygenerator.render()
+    logger.info(f"DEBUG: Rendered QUERYGENERATOR Prompt: {rendered}")
+    ##### TIME TO BUILD SOME SEARCHTERMS
+
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=rendered,
+        temperature=0,
+        top_p=0.9,
+        max_tokens=512,
+        stop=["||>"],
+    )
+    #logger.info(f"DEBUG OPENAI Query ANSWER: {response}")
+    ##### Now we have a String in Semilist format and need to decide some stuff we do with it
+    ##### First lets create a proper List Object out of it
+    text = response["choices"][0]["text"]
+
+    # Split the text by "|"
+    text_list = text.split("|")
+
+    # Initialize the two lists
+    msg_category = ""
+    msg_searchterms = []
+
+    # Get the category from the first item
+    msg_category = text_list[0].strip()
+
+    # Get the search terms from the second item
+    msg_searchterms = text_list[1].strip().split(",")
+
+    # Remove any leading or trailing whitespaces
+    msg_searchterms = [x.strip() for x in msg_searchterms]
+
+    # Print the lists to check the results
+    print("msg_category:", msg_category)
+    print("msg_searchterms:", msg_searchterms)
+    logger.info(f"DEBUG: msg_category: {msg_category} msg_searchterms: {msg_searchterms}")
+    ##### Now we can return these things to our Decision Engine
+    ##### msg_category, msg_searchterms, response.usage.total_token
+    return msg_category, msg_searchterms, response.usage.total_tokens
+
+async def decoder(messages: List[Message], Context):
+    # We getting the whole Chat-History and the whole Context here, now we need to build a Prompt to let OpenAI Decide how our final Context Piece looks:
+    # prompt Building First
+    ######## CONTINUE HERE
+    messages = messages [-5:]
+    Cleanmemorys = ""
+    for mem in Context:
+        print(mem.title) # Finally WORKS!
+        Cleanmemorys += f"Memory|title={mem.title} , content={mem.content} <|> "
+    EXAMPLES = []
+    for c in DECODER_EXAMPLES:
+        example_messages = []
+        for m in c.messages:
+            if m.user == "Lenard":
+                example_messages.append(Message(user=MY_BOT_NAME, text=m.text))
+            else:
+                example_messages.append(m)
+        EXAMPLES.append(Conversation(messages=example_messages))
+
+    decoder=QueryPrompt(
+        header=Message(
+            "System", f"Instructions for {MY_BOT_NAME}: {DECODER_INSTRUCTIONS}"
+        ),
+        examples=DECODER_EXAMPLES,
+        convo=Conversation(messages + [
+            Message("System", f"{Cleanmemorys}")] + [
+                               Message(MY_BOT_NAME)]),
+    )
+    rendered = decoder.render()
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=rendered,
+        temperature=0,
+        top_p=0.9,
+        max_tokens=512,
+        stop=["||>"],
+    )
+    logger.info(f"DEBUG Rendered DECODER Prompt: {rendered}")
+    text = response["choices"][0]["text"]
+    return text, response.usage.total_tokens
+
+
+
+async def encoder(messages: List[Message], webresults):
+    ### Do a check on what we actually have before we send it OpenAI
+    messages = messages [-4:]
+    tokens = 0
+    memorys = []
+    if webresults:
+        for web in webresults:
+            ### Ok we now have nicely split up Webresults
+            ### Time to send the all to OpenAI to get a proper Summary back from the Crappy Webresults to save as Memory and return to our Decision Routine
+            CONVO = []
+            for c in ENCODER_EXAMPLES:
+                encoder_messages = []
+                for m in c.messages:
+                    if m.user == "Lenard":
+                        encoder_messages.append(Message(user=MY_BOT_NAME, text=m.text))
+                    else:
+                        encoder_messages.append(m)
+                CONVO.append(Conversation(messages=encoder_messages))
+
+            encoder = QueryPrompt(
+                header=Message(
+                    "System", f"Instructions for {MY_BOT_NAME}: {ENCODER_INSTRUCTIONS}"
+                ),
+                examples=CONVO,
+                convo=Conversation(messages + [Message("System", f"Link = {web.link} , Snippet = {web.snippet} , Content = {web.content}" )] + [Message(MY_BOT_NAME)]),
+            )
+            rendered = encoder.render()
+            logger.info(f"DEBUG ENCODER RENDERED PROMPT: {rendered}")
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=rendered,
+                temperature=0,
+                top_p=0.9,
+                max_tokens=512,
+                stop=["||>"],
+            )
+            tokens +=response.usage.total_tokens
+            logger.info(f"DEBUG ENCODER RENDERED PROMPT: {rendered}")
+            # Time to take Apart the Answer from OpenAI and put it into a Memory Dataclass ... did i tell you that i hate this stuff ...
+            text = response["choices"][0]["text"]
+            if "<|>" in text:
+                title, content = text.split("<|>")
+                title = title.split("=")[1].strip()
+                content = content.split("=")[1].strip()
+
+                memory = Memory(title=title.strip("?"), content=content)
+                # We can also save every Memory here in Weaviate
+
+                memory_obj = {
+                    "title" : memory.title,
+                    "content": memory.content,
+                }
+                client.data_object.create(
+                    data_object=memory_obj,
+                    class_name="Memorys",
+                )
+                memorys.append(memory)
+    return memorys, tokens
+
+
+async def decision_engine(messages: List[Message]):
+    msg_category, msg_searchterms, tokens = await querygenerator(messages)
+    print(msg_searchterms)
+    Context = []
+    if msg_category != "General_Message":
+        if msg_searchterms != ['']:
+            # Use asyncio.gather to run websearch and encoding tasks in parallel
+            websearch_tasks = [websearch(searchterm) for searchterm in msg_searchterms]
+            encoded_tasks = [encoder(messages, web) for web in await asyncio.gather(*websearch_tasks)]
+            for webmem, count in await asyncio.gather(*encoded_tasks):
+                if webmem:
+                    print(webmem[0].title)
+                    memory = Memory(title=webmem[0].title, content=webmem[0].content)
+                    Context.append(memory)
+                    tokens += count
+            # Now we load Memorys from the Database:
+            db_query_tasks = [listmemory(searchterm) for searchterm in msg_searchterms]
+            dbmem_list = await asyncio.gather(*db_query_tasks)
+            for dbmem in dbmem_list:
+                for mem in dbmem["data"]["Get"]["Memorys"]:
+                    memory = Memory(title=mem["title"], content=mem["content"])
+                    Context.append(memory)
+    # We got alot of Memorys now in the Context List and need to send it all to a Decoder to remove Duplicates and create only a Contextlist for our Current Conversation:
+    final_context, dec_counter = await decoder(messages, Context)
+    tokens += dec_counter
+    return final_context, tokens
+
+### Part of the Decision Engine Routine
+async def listmemory(question):
+    nearText = {
+        "concepts": question,
+        "distance": 0.7,  # prior to v1.14 use "certainty" instead of "distance"
+    }
+    result = (
+        client.query
+        .get('Memorys', ['title', 'content'])
+        .with_near_text(nearText)
+        .with_limit(1)
+        .do()
+    )
+
+    return result
+
+### Part of Dynamic Convo Picker
 async def listnear(question):
-    client = WEAVICLIENT
     nearText = {
         "concepts": question,
         "distance": 0.7,  # prior to v1.14 use "certainty" instead of "distance"
@@ -54,12 +275,20 @@ async def listnear(question):
 
     return result
 
+### Part of Dynamic Convo Picker
+def convert_to_json2(message):
+    data = {
+        'text': message
+    }
+    return data
+
 def convert_to_json(message):
     data = {
         'text': message.text
     }
     return data
 
+### Part of Dynamic Convo Picker
 async def getexamples(messages: List[Message]):
     json_messages = [convert_to_json(m) for m in messages]
     EXAMPLEs = await listnear(json_messages[-1]['text'])
@@ -104,30 +333,33 @@ async def generate_completion_response(
     messages: List[Message], user: str
 ) -> CompletionData:
     try:
-        # Time to butcher this totally
+        ## Adding a "Decision Routine" and a "Source Routine" which will modify the Prompt even more with dynamic Data. Totally butchered ofc. ###
+        final_context, tokens = await decision_engine(messages)
+        logger.info(f"we reached DECIOSN IN generate_complete_response{final_context}")
+        ### This adds the Example_Convos Dynamic Picker in a butchered Way ###
         CONVOS = await getexamples(messages)
-        logger.info(f"DEBUG EXAMPLE CONVERSATION: {CONVOS}")
+        #logger.info(f"DEBUG EXAMPLE CONVERSATION: {CONVOS}")
         prompt = Prompt(
             header=Message(
                 "System", f"Instructions for {MY_BOT_NAME}: {BOT_INSTRUCTIONS}"
             ),
             examples=CONVOS,
             convo=Conversation(messages + [Message(MY_BOT_NAME)]),
-            date=datetime.datetime.now()
+            date=datetime.datetime.now(),
+            context=Message("System", f"Context for current Question:{final_context}")
         )
         rendered = prompt.render()
         ### Here it Ends what we butchered ###
         logger.info(f"DEBUG Rendered Prompt: {rendered}")
-
         response = openai.Completion.create(
             engine="text-davinci-003",
             prompt=rendered,
-            temperature=1.0,
+            temperature=0.2,
             top_p=0.9,
             max_tokens=512,
-            stop=["<|endoftext|>"],
+            stop=["||>"],
         )
-
+        logger.info(f"DEBUG Response OpenAI Raw: {response} ")
         reply = response.choices[0].text.strip()
         if reply:
             flagged_str, blocked_str = moderate_message(
@@ -138,6 +370,7 @@ async def generate_completion_response(
                     status=CompletionResult.MODERATION_BLOCKED,
                     reply_text=reply,
                     status_text=f"from_response:{blocked_str}",
+                    tokens=tokens
                 )
 
             if len(flagged_str) > 0:
@@ -145,16 +378,18 @@ async def generate_completion_response(
                     status=CompletionResult.MODERATION_FLAGGED,
                     reply_text=reply,
                     status_text=f"from_response:{flagged_str}",
+                    tokens=tokens
                 )
 
-        #reply = "DEBUGGIN"
+        #reply = str(final_context)
+        tokens +=response.usage.total_tokens
         return CompletionData(
-            status=CompletionResult.OK, reply_text=reply, status_text=None
+            status=CompletionResult.OK, reply_text=reply, status_text=None, tokens=tokens
         )
     except openai.error.InvalidRequestError as e:
         if "This model's maximum context length" in e.user_message:
             return CompletionData(
-                status=CompletionResult.TOO_LONG, reply_text=None, status_text=str(e)
+                status=CompletionResult.TOO_LONG, reply_text=None, status_text=str(e), tokens=tokens
             )
         else:
             logger.exception(e)
@@ -162,11 +397,12 @@ async def generate_completion_response(
                 status=CompletionResult.INVALID_REQUEST,
                 reply_text=None,
                 status_text=str(e),
+                tokens=tokens
             )
     except Exception as e:
         logger.exception(e)
         return CompletionData(
-            status=CompletionResult.OTHER_ERROR, reply_text=None, status_text=str(e)
+            status=CompletionResult.OTHER_ERROR, reply_text=None, status_text=str(e), tokens=tokens
         )
 
 
@@ -176,6 +412,7 @@ async def process_response(
     status = response_data.status
     reply_text = response_data.reply_text
     status_text = response_data.status_text
+    token_usage = response_data.tokens
     if status is CompletionResult.OK or status is CompletionResult.MODERATION_FLAGGED:
         sent_message = None
         if not reply_text:
@@ -186,6 +423,13 @@ async def process_response(
                 )
             )
         else:
+            ### Here we can add the Log Message on Discord to show Tokenusage:
+            await send_usage(
+                guild=thread.guild,
+                user=user,
+                tokens=token_usage,
+                url=thread.jump_url
+            )
             shorter_response = split_into_shorter_messages(reply_text)
             for r in shorter_response:
                 sent_message = await thread.send(r)

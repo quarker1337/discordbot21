@@ -8,7 +8,7 @@ from discord import Message as DiscordMessage
 from typing import Optional, List
 import discord
 
-from lib.constants import MAX_CHARS_PER_REPLY_MSG, INACTIVATE_THREAD_PREFIX
+from lib.constants import MAX_CHARS_PER_REPLY_MSG, INACTIVATE_THREAD_PREFIX, SERVER_TO_SYSTEMCHANNEL
 
 
 def discord_message_to_message(message: DiscordMessage) -> Optional[Message]:
@@ -33,6 +33,32 @@ def split_into_shorter_messages(message: str) -> List[str]:
         for i in range(0, len(message), MAX_CHARS_PER_REPLY_MSG)
     ]
 
+async def fetch_system_channel(
+    guild: Optional[discord.Guild],
+) -> Optional[discord.abc.GuildChannel]:
+    if not guild or not guild.id:
+        return None
+    moderation_channel = SERVER_TO_SYSTEMCHANNEL.get(guild.id, None)
+    if moderation_channel:
+        channel = await guild.fetch_channel(moderation_channel)
+        return channel
+    return None
+
+async def send_usage(
+    guild: Optional[discord.Guild],
+    user: str,
+    tokens: int,
+    url: str
+):
+    usd = (tokens/1000) * 0.02
+    usd_formatted = "${:,.2f}".format(usd)
+    statuschannel = await fetch_system_channel(guild=guild)
+
+    embed = discord.Embed(title=url, description="\n", color=0x00ff00)
+    embed.add_field(name="User", value=user, inline=True)
+    embed.add_field(name="Tokens", value=tokens, inline=True)
+    embed.add_field(name="Costs", value=usd_formatted, inline=True)
+    await statuschannel.send(embed=embed)
 
 def is_last_message_stale(
     interaction_message: DiscordMessage, last_message: DiscordMessage, bot_id: str

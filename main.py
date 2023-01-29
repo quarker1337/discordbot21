@@ -5,8 +5,9 @@ from discord.ext import commands
 import configparser
 import logging
 from lib.utils import (
-    logger,
+        logger,
 )
+import openai
 #format="[%(asctime)s] [%(filename)s:%(lineno)d] %(message)s"
 logging.basicConfig(filename='example.log', encoding='utf-8', format="[%(asctime)s] %(message)s", level=logging.INFO)
 
@@ -26,6 +27,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Read the Discord API token from the configuration file
 discord_token = config['DISCORD']['TOKEN']
+openai.api_key = config['OpenAI']['TOKEN']
+#models = openai.Model.list()
+#print(models)
 
 # Define an async function that loads all extensions (Python files)
 # in the 'cogs' directory that have the '.py' extension
