@@ -238,11 +238,13 @@ class quarks(commands.Cog):
             channel_messages = [x for x in channel_messages if x is not None]
             channel_messages.reverse()
 
-            # generate the response
             async with thread.typing():
-                response_data = await generate_completion_response(
-                    messages=channel_messages, user=message.author
-                )
+                try:
+                    response_data = await asyncio.wait_for(generate_completion_response(
+                        messages=channel_messages, user=message.author
+                    ), timeout=30.0)  # timeout is set to 5 seconds
+                except asyncio.TimeoutError:
+                    response_data = "Timeout Error: The operation took too long"
 
             if is_last_message_stale(
                     interaction_message=message,

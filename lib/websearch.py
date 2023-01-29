@@ -82,7 +82,7 @@ async def websearch(searchterm: str):
             return
 
         mystring_words = text.split()
-        n = 1200
+        n = 1000
         for i in range(1):
             string = ' '.join(mystring_words[i:i + n])
             websearch = Websearch(link=link, snippet=snippet)
