@@ -1,30 +1,30 @@
 import sqlite3
+from typing import List
 from lib.utils import(
     logger,
 )
 
 async def create_database():
     conn = connect_database()
+
     conn.execute('''CREATE TABLE USERS
                 (ID INT PRIMARY KEY NOT NULL,
                 USERNAME    TEXT    NOT NULL,
                 TOKENS      INT     NOT NULL,
                 LIFETIMETOKENS  INT)
     ;''')
+
+    conn.execute('''CREATE TABLE PROMPTS
+                (TYPE       TEXT     NOT NULL,
+                PROMPT      TEXT    NOT NULL,
+                COMPLETION  TEXT)
+        ;''')
     logger.info(f"Created new SQLite Database")
     return
 
 def connect_database():
     conn = sqlite3.connect("bot.db")
     return conn
-
-def update_user(user):
-    print(user.id)
-    print("TODO")
-
-def check_balance(user):
-    balance = 50000
-    return balance
 
 async def load_db_user(user):
     conn = connect_database()
@@ -38,9 +38,14 @@ async def load_db_user(user):
     else:
         return result
 
-def get_db_users():
+async def get_db_users():
     conn = connect_database()
     cursor = conn.execute("SELECT id, username, tokens, lifetimetokens from USERS")
+    return cursor
+
+async def get_db_prompts():
+    conn = connect_database()
+    cursor = conn.execute("SELECT type, prompt, completion from PROMPTS")
     return cursor
 
 async def update_token_usage(user, usage):
@@ -65,4 +70,13 @@ async def update_balance(user, tokens: int):
     result = await load_db_user(user)
     return result, current_tokens
 
-### TODO Build a Function that saves all generated Prompts for later Finetuning of cheaper Models
+### Function that saves all Inputprompts + generated Outputs for later Finetuning of cheaper Models
+async def save_prompt_db(type: str, messages, completion: str):
+    conn = connect_database()
+    print(messages[-1].text)
+    print(completion)
+    conn.execute("INSERT INTO PROMPTS (type, prompt, completion) VALUES (?,?,?)", (type, messages[-1].text, str(completion)))
+    conn.commit()
+    logger.info(f"Written New SQLite Prompt Entry: Prompt: {messages[-1]} Completion: {completion}")
+
+

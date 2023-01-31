@@ -28,7 +28,8 @@ from lib.moderation import (
     send_moderation_blocked_message,
 )
 from lib.sqlite import (
-    update_token_usage
+    update_token_usage,
+    save_prompt_db
 )
 MY_BOT_EXAMPLE_CONVOS = EXAMPLE_CONVOS
 MY_BOT_NAME = BOT_NAME
@@ -88,7 +89,7 @@ async def querygenerator(messages: List[Message]):
     ##### Now we have a String in Semilist format and need to decide some stuff we do with it
     ##### First lets create a proper List Object out of it
     text = response["choices"][0]["text"]
-
+    await save_prompt_db("query", messages, text)
     # Split the text by "|"
     text_list = text.split("|")
 
@@ -149,6 +150,7 @@ async def decoder(messages: List[Message], Context):
     )
     #logger.info(f"DEBUG Rendered DECODER Prompt: {rendered}")
     text = response["choices"][0]["text"]
+    await save_prompt_db("decoder", messages, text)
     return text, response.usage.total_tokens
 
 
@@ -192,6 +194,7 @@ async def encoder(messages: List[Message], webresults):
             #logger.info(f"DEBUG ENCODER RENDERED PROMPT: {rendered}")
             # Time to take Apart the Answer from OpenAI and put it into a Memory Dataclass ... did i tell you that i hate this stuff ...
             text = response["choices"][0]["text"]
+            await save_prompt_db("encoder", messages, text)
             if "<|>" in text:
                 title, content = text.split("<|>")
                 title = title.split("=")[1].strip()
@@ -356,6 +359,7 @@ async def generate_completion_response(
             stop=["||>"],
         )
         reply = response.choices[0].text.strip()
+        await save_prompt_db("Final", messages, reply)
         if reply:
             flagged_str, blocked_str = moderate_message(
                 message=(rendered + reply)[-500:], user=user

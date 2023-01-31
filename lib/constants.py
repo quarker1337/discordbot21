@@ -28,8 +28,6 @@ WEAVICLIENT = weaviate.Client(config['WEAVIATE']['URL'])
 ADMINUSER = int(config['GENERAL']['ADMIN_ID'])
 EXAMPLESCHANNEL = config['GENERAL']['EXAMPLESCHANNEL'].split(',')
 EXAMPLESCHANNEL = [int(x.strip()) for x in EXAMPLESCHANNEL]
-IGNORECHANNEL = config['GENERAL']['IGNORECHANNEL'].split(',')
-IGNORECHANNEL = [int(x.strip()) for x in IGNORECHANNEL]
 
 
 # gpt-discord-bot Default Settings

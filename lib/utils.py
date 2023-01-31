@@ -8,7 +8,7 @@ from discord import Message as DiscordMessage
 from typing import Optional, List
 import discord
 
-from lib.constants import MAX_CHARS_PER_REPLY_MSG, INACTIVATE_THREAD_PREFIX, SERVER_TO_SYSTEMCHANNEL
+from lib.constants import MAX_CHARS_PER_REPLY_MSG, INACTIVATE_THREAD_PREFIX, SERVER_TO_SYSTEMCHANNEL, SERVER_TO_COMMANDCHANNEL
 
 
 def discord_message_to_message(message: DiscordMessage) -> Optional[Message]:
@@ -49,7 +49,7 @@ async def fetch_command_channel(
 ) -> Optional[discord.abc.GuildChannel]:
     if not guild or not guild.id:
         return None
-    moderation_channel = SERVER_TO_SYSTEMCHANNEL.get(guild.id, None)
+    moderation_channel = SERVER_TO_COMMANDCHANNEL.get(guild.id, None)
     if moderation_channel:
         channel = await guild.fetch_channel(moderation_channel)
         return channel

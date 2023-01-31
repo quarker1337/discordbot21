@@ -19,6 +19,7 @@ from lib.sqlite import (
     create_database,
     get_db_users,
     update_balance,
+    get_db_prompts,
 )
 
 # Define a cog (a class that represents a group of commands and listeners)
@@ -89,6 +90,16 @@ class db(commands.Cog):
                         tokens = user[2]
                         lifetimetokens = user[3]
                         message = f"ID: {id}\nUsername: {username}\nTokens: {tokens}\nLifetime Tokens: {lifetimetokens}"
+                        await ctx.send(message)
+                    return
+                if arg1 == "listprompts":
+                    prompts = await get_db_prompts()
+                    await ctx.send(f">>> Listing Prompts and Completions.")
+                    for prompt in prompts:
+                        type = prompt[0]
+                        input = prompt[1]
+                        completion = prompt[2]
+                        message = f">>> Type: {type}\nPrompt: {input}\nCompletion: {completion}"
                         await ctx.send(message)
                     return
                 if arg1 == "updatebalance":

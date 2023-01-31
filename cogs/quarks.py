@@ -17,6 +17,7 @@ from lib.utils import (
     close_thread,
     is_last_message_stale,
     discord_message_to_message,
+    fetch_command_channel,
 )
 from lib import completion
 from lib.completion import generate_completion_response, process_response
@@ -71,11 +72,15 @@ class quarks(commands.Cog):
             if should_block(guild=int.guild):
                 return
 
-            user = int.user
+            # only run command in command_channel
+            COMMANDCHANNEL = await fetch_command_channel(int.guild)
+            if int.channel.id != COMMANDCHANNEL.id:
+                return
 
-            # TODO Check User Token Balance before going further
+            user = int.user
+            # Check User Token Balance before going further
             try:
-                # First check if User exists at all
+                # First check if User exists at all, if not this function automatically creates one with a default balance
                 db_user = await load_db_user(user)
                 if db_user[2] == 0:
                     await int.response.send_message(f"Token Balance is 0, use /info to check balance, contact Bot-Owner for Help", ephemeral=True)
@@ -104,7 +109,7 @@ class quarks(commands.Cog):
                     return
 
                 embed = discord.Embed(
-                    description=f"<@{user.id}> wants to chat! 🤖💬",
+                    description=f"<@{user.id}> wants to chat! 👀💬",
                     color=discord.Color.green(),
                 )
                 embed.add_field(name=user.name, value=message)
