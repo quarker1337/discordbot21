@@ -44,6 +44,17 @@ async def fetch_system_channel(
         return channel
     return None
 
+async def fetch_command_channel(
+    guild: Optional[discord.Guild],
+) -> Optional[discord.abc.GuildChannel]:
+    if not guild or not guild.id:
+        return None
+    moderation_channel = SERVER_TO_SYSTEMCHANNEL.get(guild.id, None)
+    if moderation_channel:
+        channel = await guild.fetch_channel(moderation_channel)
+        return channel
+    return None
+
 async def send_usage(
     guild: Optional[discord.Guild],
     user: str,

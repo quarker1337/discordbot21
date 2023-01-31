@@ -64,3 +64,5 @@ async def update_balance(user, tokens: int):
     conn.commit()
     result = await load_db_user(user)
     return result, current_tokens
+
+### TODO Build a Function that saves all generated Prompts for later Finetuning of cheaper Models

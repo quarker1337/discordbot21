@@ -26,8 +26,6 @@ WEAVICLIENT = weaviate.Client(config['WEAVIATE']['URL'])
 
 # ADMINSTUFF
 ADMINUSER = int(config['GENERAL']['ADMIN_ID'])
-#SYSTEMCHANNEL = config['GENERAL']['SYSTEMCHANNEL'].split(',')
-#SYSTEMCHANNEL = [int(x.strip()) for x in SYSTEMCHANNEL]
 EXAMPLESCHANNEL = config['GENERAL']['EXAMPLESCHANNEL'].split(',')
 EXAMPLESCHANNEL = [int(x.strip()) for x in EXAMPLESCHANNEL]
 IGNORECHANNEL = config['GENERAL']['IGNORECHANNEL'].split(',')
@@ -75,6 +73,11 @@ for s in sysserver_channels:
     values = s.split(":")
     SERVER_TO_SYSTEMCHANNEL[int(values[0])] = int(values[1])
 
+SERVER_TO_COMMANDCHANNEL: Dict[int, int] = {}
+command_channels = config['OpenAI']['ACTIVE_COMMAND_CHANNELS'].split(",")
+for s in command_channels:
+    values = s.split(":")
+    SERVER_TO_COMMANDCHANNEL[int(values[0])] = int(values[1])
 
 # Send Messages, Create Public Threads, Send Messages in Threads, Manage Messages, Manage Threads, Read Message History, Use Slash Command
 BOT_INVITE_URL = f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&permissions=328565073920&scope=bot"

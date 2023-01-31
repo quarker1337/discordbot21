@@ -418,15 +418,19 @@ async def process_response(
             )
         else:
             ### Here we can add the Log Message on Discord to show Tokenusage:
-            # TODO Move this to utils.py
+            # Maybe Move this to utils.py
             # Here we add the token_usage to the sqlite db for the user:
             await update_token_usage(user, token_usage)
-            await send_usage(
-                guild=thread.guild,
-                user=user,
-                tokens=token_usage,
-                url=thread.jump_url
-            )
+            try:
+                await send_usage(
+                    guild=thread.guild,
+                    user=user,
+                    tokens=token_usage,
+                    url=thread.jump_url
+                )
+            except Exception as e:
+                logger.info(f"No Status-Channelset on Server: {thread.guild}")
+                logger.info(f"Token Usage by User: {user}, Tokens-Spent: {token_usage} URL: {thread.jump_url}")
             shorter_response = split_into_shorter_messages(reply_text)
             for r in shorter_response:
                 sent_message = await thread.send(r)
