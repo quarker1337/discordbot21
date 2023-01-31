@@ -23,7 +23,7 @@ intents.members = True
 
 # Initialize a 'commands.Bot' object with a command prefix of "!"
 # and the defined intents
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # Read the Discord API token from the configuration file
 discord_token = config['DISCORD']['TOKEN']

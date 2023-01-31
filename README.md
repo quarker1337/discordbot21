@@ -1,13 +1,34 @@
-# Basic Discord Bot  
-This is a simple Discord bot built using Python and the Discord API. The bot is built using the `discord.py` library and utilizes "cogs" to separate different functions into different files.
+# OpenAI powered Discord Bot  
+This is a Discord bot built using Python and the Discord API. The bot is built using the `discord.py` library and utilizes "cogs" to separate different functions into different files.
 
-## Additional Features
-This bot also incorporates the use of gpt-discord-bot from OpenAI which uses OpenAI's completions and moderations API to have conversations with the `text-davinci-003` model and filter messages. The bot includes a `/chat` command that starts a public thread where users can interact with the model, and the thread will be closed when the context limit is reached or a maximum message count is reached.
+This bot incorporates a reworked version of the OpenAI's gpt-discord-bot, using OpenAI's completion and moderation API for text-davinci-003 model based conversations and message filtering. The chat command starts a public thread for users to interact with the bot. Inspired by Blenderbot2 Architecture, the processing pipeline is as follows:
 
-## Getting Started  
-To get started, you will need to have Python 3 and the `discord.py` library installed. You can install the necessary dependencies by running `pip install -r requirements.txt`. 
+1. User sends message
+2. OpenAI moderation endpoint checks message
+3. GPT3 query generator classifies message into 3 categories: general message, task, or question
+4. GPT3 encoder analyzes 2 web results for task or question and saves memory in Weaviate DB
+5. GPT3 decoder generates summary of web content and memory
+6. GPT3 final generates answer to user message
+7. OpenAI moderation endpoint checks message before sending
+8. Chatbot answers
 
-You will also need to create a `config.ini` file with your Discord API token and fill in the necessary OpenAI API key and Discord client ID details. An `example.ini` file is provided as a reference.
+__Note__: This reworked version is expensive to run, with 5 completion requests and 2 search requests to Google's Custom Search API per user interaction.
+
+## Getting Started
+Requirements:
+* OpenAI API Key
+* Discord Bot API Key
+* Google Custom JSON Search API Key and Custom Search ID
+* Weaviate DB Setup and accessible by your Chatbot
+
+Steps:
+1. Install dependencies with `pip install -r requirements.txt`
+2. Create a `config.ini` file with Discord API, OpenAI API and Google Search key details, using `example.ini` as reference.
+3. If you read upto here you probably figure out the rest i was to bored to finish right now ...
+4. Set up Weaviate database by following instructions on https://weaviate.io/developers/weaviate/current/installation/docker-compose.html.
+5. Run the bot by executing the main.py file with Python.
+6. Run the `!db createschema` Command once in a set Command Channel to setup the Weaviate Schema for the Bot.
+
 ### Weaviate Setup
 In order to use the advanced features of this bot, you will need to install a Weaviate database. You can do this by following the instructions on this page: https://weaviate.io/developers/weaviate/current/installation/docker-compose.html
 
@@ -38,7 +59,8 @@ services:
       CLUSTER_HOSTNAME: 'node1'
 ```
 Make sure to set the correct version of Weaviate image you want to use and also set the correct OpenAI API key in the environment section.
- 
+
+__Note__: The example Weaviate Docker Compose has no authentication and Persistent Storage, check the official Documentation howto add this.
 
 ## Running the Bot  
 To run the bot, simply execute the `main.py` file using Python. The bot will automatically load all cogs (files ending in `.py`) in the `cogs` directory and start running.  
@@ -61,7 +83,9 @@ This repository includes code from the following third-party libraries:
 This code is used under the terms of the MIT License, a copy of which can be found in the `LICENSE` file.
 
 ### References  
-* [https://github.com/openai/gpt-discord-bot/blob/main/README.md]
-* [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]  
+* [https://github.com/openai/gpt-discord-bot/]
+* [https://discordpy.readthedocs.io/en/stable/ext/commands/extensions.html]
+* [https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html]
 * [https://openai.com/]
 * [https://beta.openai.com/docs/introduction]
+* [https://parl.ai/projects/blenderbot2/]

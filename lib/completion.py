@@ -27,6 +27,9 @@ from lib.moderation import (
     send_moderation_flagged_message,
     send_moderation_blocked_message,
 )
+from lib.sqlite import (
+    update_token_usage
+)
 MY_BOT_EXAMPLE_CONVOS = EXAMPLE_CONVOS
 MY_BOT_NAME = BOT_NAME
 
@@ -322,9 +325,10 @@ async def getexamples(messages: List[Message]):
 async def generate_completion_response(
     messages: List[Message], user: str
 ) -> CompletionData:
+    tokens = 0
     try:
         ## Adding a "Decision Routine" and a "Source Routine" which will modify the Prompt even more with dynamic Data. Totally butchered ofc. ###
-        tokens = 0
+
         final_context = ""
         final_context, tokens = await decision_engine(messages)
         logger.info(f"we reached DECIOSN IN generate_complete_response{final_context}")
@@ -414,6 +418,9 @@ async def process_response(
             )
         else:
             ### Here we can add the Log Message on Discord to show Tokenusage:
+            # TODO Move this to utils.py
+            # Here we add the token_usage to the sqlite db for the user:
+            await update_token_usage(user, token_usage)
             await send_usage(
                 guild=thread.guild,
                 user=user,

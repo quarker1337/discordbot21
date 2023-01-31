@@ -25,6 +25,9 @@ from lib.moderation import (
     send_moderation_blocked_message,
     send_moderation_flagged_message,
 )
+from lib.sqlite import (
+    load_db_user,
+)
 
 # Define a cog (a class that represents a group of commands and listeners)
 # that has a command and an event listener
@@ -69,6 +72,19 @@ class quarks(commands.Cog):
                 return
 
             user = int.user
+
+            # TODO Check User Token Balance before going further
+            try:
+                # First check if User exists at all
+                db_user = await load_db_user(user)
+                if db_user[2] == 0:
+                    await int.response.send_message(f"Token Balance is 0, use /info to check balance, contact Bot-Owner for Help", ephemeral=True)
+                    return
+            except Exception as e:
+                logger.exception(e)
+                await int.response.send_message(
+                    f"Failed to start chat {str(e)}", ephemeral=True
+                )
             logger.info(f"Chat command by {user} {message[:20]}")
             try:
                 # moderate the message
@@ -173,6 +189,17 @@ class quarks(commands.Cog):
                 await close_thread(thread=thread)
                 return
 
+            # First check if User exists at all
+            db_user = await load_db_user(message.author)
+            if db_user[2] == 0:
+                logger.warning(f"User: {message.author.name} trying to chat in Thread with 0 Balance. User-ID: {message.author.id}")
+                await thread.send(embed=discord.Embed(
+                                description=f"Deleting Message from User with 0 Token Balance:{message.author.name}: {message.content}",
+                                color=discord.Color.red(),
+                                    )
+                )
+                await message.delete()
+                return
             # moderate the message
             flagged_str, blocked_str = moderate_message(
                 message=message.content, user=message.author
@@ -242,9 +269,9 @@ class quarks(commands.Cog):
                 try:
                     response_data = await asyncio.wait_for(generate_completion_response(
                         messages=channel_messages, user=message.author
-                    ), timeout=30.0)  # timeout is set to 5 seconds
+                    ), timeout=35.0)  # timeout is set to 5 seconds
                 except asyncio.TimeoutError:
-                    response_data = "Timeout Error: The operation took too long"
+                    response_data = "Timeout Error: generate_completion_response took over 35Secs to answer."
 
             if is_last_message_stale(
                     interaction_message=message,
