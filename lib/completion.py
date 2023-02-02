@@ -124,6 +124,8 @@ async def decoder(messages: List[Message], Context):
             modmessages.insert(1, m)
             current_tokens += len(tokenizer.tokenize(m.text))
         logger.info(f"Final Tokens Decoder Messages: {current_tokens}")
+    else:
+        modmessages = messages
 
     Cleanmemorys = ""
     for mem in Context:
@@ -348,7 +350,6 @@ async def generate_completion_response(
     tokens = 0
     try:
         ## Adding a "Decision Routine" and a "Source Routine" which will modify the Prompt even more with dynamic Data. Totally butchered ofc. ###
-
         final_context = ""
         final_context, tokens = await decision_engine(messages)
         logger.info(f"we reached DECIOSN IN generate_complete_response{final_context}")
@@ -366,6 +367,8 @@ async def generate_completion_response(
                 modmessages.insert(1, m)
                 current_tokens += len(tokenizer.tokenize(m.text))
             logger.info(f"Final Tokens Final Response Messages: {current_tokens}")
+        else:
+            modmessages = messages
         prompt = Prompt(
             header=Message(
                 "System", f"Instructions for {MY_BOT_NAME}: {BOT_INSTRUCTIONS}"
