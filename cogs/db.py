@@ -1,4 +1,6 @@
+import discord
 from discord.ext import commands
+from transformers import GPT2Tokenizer
 from lib.utils import (
     logger,
     split_into_shorter_messages,
@@ -14,6 +16,7 @@ from lib.weaviate import (
     listobjects,
     listnearobjects,
     deleteobject,
+    deletedb
 )
 from lib.sqlite import (
     create_database,
@@ -21,6 +24,8 @@ from lib.sqlite import (
     update_balance,
     get_db_prompts,
 )
+
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Define a cog (a class that represents a group of commands and listeners)
 # that has a command and an event listener
@@ -78,12 +83,15 @@ class db(commands.Cog):
                 if arg2 is not None:
                     result = await deleteobject(arg1, arg2)
                     await ctx.send(f"Deleted Object Result: {result}")
+            elif command == "deletedb":
+                await deletedb()
+                await ctx.send(f"Deleted Weaviate Memory and Example Database")
             elif command == "sqlite":
                 if arg1 == "createuserdb":
                     conn = await create_database()
                     await ctx.send(f"Created SQL-Lite DB for Users: {conn}")
                 if arg1 == "listusers":
-                    users = get_db_users()
+                    users = await get_db_users()
                     for user in users:
                         id = user[0]
                         username = user[1]
@@ -99,8 +107,14 @@ class db(commands.Cog):
                         type = prompt[0]
                         input = prompt[1]
                         completion = prompt[2]
-                        message = f">>> Type: {type}\nPrompt: {input}\nCompletion: {completion}"
-                        await ctx.send(message)
+                        if len(input) > 1000:
+                            input = input[:1000] + "..."
+                        if len(completion) > 1000:
+                            completion = completion[:1000] + "..."
+                        embed = discord.Embed(title="Type", description=type, color=0x00ff00)
+                        embed.add_field(name="Prompt", value=input, inline=True)
+                        embed.add_field(name="Completion", value=completion, inline=True)
+                        await ctx.send(embed=embed)
                     return
                 if arg1 == "updatebalance":
                     if arg2 and arg3 is not None:

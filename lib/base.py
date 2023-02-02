@@ -26,6 +26,7 @@ class Websearch:
 class Memory:
     title: str
     content: str
+    tokens: int
 
 @dataclass
 class Conversation:

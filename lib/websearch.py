@@ -82,13 +82,18 @@ async def websearch(searchterm: str):
             return
 
         mystring_words = text.split()
-        n = 1000
+        n = 1300
+        total_tokens = 0
         for i in range(1):
-            string = ' '.join(mystring_words[i:i + n])
+            string = ' '.join(mystring_words[i:i + n]).strip()
+            tokens = len(tokenizer.tokenize(string))
+            total_tokens += tokens
+            if total_tokens > 1800:
+                break
             websearch = Websearch(link=link, snippet=snippet)
             websearch.content = string
             logger.debug("Websearch content: %s", websearch.content)
-            websearch.tokens = len(tokenizer.tokenize(websearch.content))
+            websearch.tokens = tokens
             websearches.append(websearch)
-
+        print(websearches)
     return websearches

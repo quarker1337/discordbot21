@@ -32,9 +32,17 @@ def createschema():
                 ],
                 "description": "Memory Content",
                 "name": "Content"
+            },
+            {
+                "dataType": [
+                    "int"
+                ],
+                "description": "Word Count/Tokens",
+                "name": "Tokens"
             }
         ]
     }
+
     example_class_obj = {
         "class": "Examples",
         "description": "Example Conversations",
@@ -56,138 +64,12 @@ def createschema():
         ]
 
     }
-    web_summarys_class_obj = {
-        "class": "WebExtract",
-        "description": "Website Text Extractions",
-        "properties": [
-            {
-                "dataType": [
-                    "number"
-                ],
-                "description": "messageID",
-                "name": "messageID"
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "Raw Content that got extracted",
-                "name": "raw",
-                "moduleConfig": {
-                    "text2vec-transformers": {
-                        "vectorizePropertyName": "false",
-                        "skip": "true"
-                        }
-                }
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "Fact List",
-                "name": "facts"
-            }
-        ]
 
-    }
-    server_class_obj = {
-        "class": "Server",
-        "description": "Discord Servers",
-        "properties": [
-            {
-                "dataType": [
-                    "number"
-                ],
-                "description": "Discord Unique ID of the Channel",
-                "name": "ServerID"
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "Servername in Discord",
-                "name": "server_name"
-            }
-        ]
-
-    }
-    channel_class_obj = {
-        "class": "Channel",
-        "description": "Discord Channels",
-        "properties": [
-            {
-                "dataType": [
-                    "number"
-                ],
-                "description": "Discord Unique ID of the Channel",
-                "name": "ChannelID"
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "Channelname in Discord",
-                "name": "channel_name"
-            }
-        ]
-
-    }
-    users_class_obj = {
-        "class": "User",
-        "description": "Authors of Discord Messages",
-        "properties": [
-            {
-                "dataType": [
-                    "number"
-                ],
-                "description": "Discord Unique ID of the User",
-                "name": "UserID"
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "The Username of the User",
-                "name": "Username"
-            },
-            {
-                "dataType": [
-                    "string"
-                ],
-                "description": "The nick of the User",
-                "name": "Nick"
-            }
-        ]
-    }
-
-    messages_class_obj = {
-        "class": "Messages",
-        "description": "Discord Messages",
-                       "properties": [
-        {
-            "dataType": [
-                "number"
-            ],
-            "description": "Discord Unique ID of the Message",
-            "name": "MessageID"
-        },
-        {
-            "dataType": [
-                "string"
-            ],
-            "description": "The Message content",
-            "name": "Content"
-        }
-    ]
-}
     client.schema.create_class(example_class_obj)
-    client.schema.create_class(server_class_obj)
-    client.schema.create_class(channel_class_obj)
-    client.schema.create_class(users_class_obj)
-    client.schema.create_class(messages_class_obj)
-    client.schema.create_class(web_summarys_class_obj)
     client.schema.create_class(memory_class_obj)
-# Create Cross-References
+
+async def deletedb():
+    client.schema.delete_all()
 
 async def countobjects(classname):
     result = (

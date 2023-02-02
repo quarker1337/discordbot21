@@ -20,7 +20,7 @@ from lib.utils import (
     fetch_command_channel,
 )
 from lib import completion
-from lib.completion import generate_completion_response, process_response
+from lib.completion import generate_completion_response, process_response, CompletionData, CompletionResult
 from lib.moderation import (
     moderate_message,
     send_moderation_blocked_message,
@@ -254,7 +254,7 @@ class quarks(commands.Cog):
                 if is_last_message_stale(
                         interaction_message=message,
                         last_message=thread.last_message,
-                        bot_id=self.bot.user.id,
+                        bot_id=str(self.bot.user.id),
                 ):
                     # there is another message, so ignore this one
                     return
@@ -276,12 +276,11 @@ class quarks(commands.Cog):
                         messages=channel_messages, user=message.author
                     ), timeout=35.0)  # timeout is set to 5 seconds
                 except asyncio.TimeoutError:
-                    response_data = "Timeout Error: generate_completion_response took over 35Secs to answer."
-
+                    response_data = CompletionData(status=CompletionResult(3), reply_text="Timeout to OpenAI after 35Secs", status_text="Timeout to OpenAI API after 35 Secs", tokens=0)
             if is_last_message_stale(
                     interaction_message=message,
                     last_message=thread.last_message,
-                    bot_id=self.bot.user.id,
+                    bot_id=str(self.bot.user.id),
             ):
                 # there is another message and its not from us, so ignore this response
                 return

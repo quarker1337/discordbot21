@@ -24,10 +24,11 @@ Requirements:
 Steps:
 1. Install dependencies with `pip install -r requirements.txt`
 2. Create a `config.ini` file with Discord API, OpenAI API and Google Search key details, using `example.ini` as reference.
-3. If you read upto here you probably figure out the rest i was to bored to finish right now ...
-4. Set up Weaviate database by following instructions on https://weaviate.io/developers/weaviate/current/installation/docker-compose.html.
-5. Run the bot by executing the main.py file with Python.
-6. Run the `!db createschema` Command once in a set Command Channel to setup the Weaviate Schema for the Bot.
+3. Set up Weaviate database by following instructions on https://weaviate.io/developers/weaviate/current/installation/docker-compose.html.
+4. Run the bot by executing the main.py file with Python.
+5. Run the `!db createschema` Command once in a set Command Channel to setup the Weaviate Schema for the Bot.
+6. Run the `!db sqlite createusersdb` Command once to setup the SQLite DB for Bot.
+7. You should be able to use the /info and /chat command now.
 
 ### Weaviate Setup
 In order to use the advanced features of this bot, you will need to install a Weaviate database. You can do this by following the instructions on this page: https://weaviate.io/developers/weaviate/current/installation/docker-compose.html
@@ -62,9 +63,14 @@ Make sure to set the correct version of Weaviate image you want to use and also 
 
 __Note__: The example Weaviate Docker Compose has no authentication and Persistent Storage, check the official Documentation howto add this.
 
+__Warning__: Deleting the Weaviate Database will delete all previously generated Memorys!
+
 ## Running the Bot  
-To run the bot, simply execute the `main.py` file using Python. The bot will automatically load all cogs (files ending in `.py`) in the `cogs` directory and start running.  
-  
+To run the bot, simply execute the `main.py` file using Python. The bot will automatically load all cogs (files ending in `.py`) in the `cogs` directory and start running.
+
+## Hardware Requirements
+As the Bot uses GPT2 Tokenizer and Weaviate the Bot requires quite some CPU Computing Power.
+
 ## Customizing the Bot  
 You can add additional functionality to the bot by creating new cogs and placing them in the `cogs` directory. The provided `ping.py` and `test.py` cogs serve as examples of how to create and use cogs.  
   

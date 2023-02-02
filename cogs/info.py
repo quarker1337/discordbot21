@@ -32,7 +32,6 @@ class info(commands.Cog):
         embed.add_field(name="Lifetime Token Usage:", value=lifetime_token_usage, inline=False)
         embed.add_field(name="Lifetime Costs:", value=usd_formatted, inline=False)
         embed.add_field(name="Tokens Left:", value=token_balance, inline=False)
-        print(embed)
         await int.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):
