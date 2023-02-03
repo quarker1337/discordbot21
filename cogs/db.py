@@ -38,7 +38,7 @@ class db(commands.Cog):
     async def on_message(self, message):
         logger.info(f"Message_ID: {message.id} Author: {message.author.id} Content: {message.content}")
 
-    @commands.has_permissions(administrator=True)
+    #@commands.has_permissions(administrator=True)
     @commands.command(description="does things", brief="does things")
     async def db(self, ctx, command=None, arg1=None, arg2=None, arg3=None):
         # We don't want these commands to run in anything but SYSTEMCHANNELS
