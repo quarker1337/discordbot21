@@ -78,7 +78,7 @@ async def querygenerator(messages: List[Message]):
     rendered = querygenerator.render()
     ##### TIME TO BUILD SOME SEARCHTERMS
 
-    response = openai.Completion.create(
+    response = await openai.Completion.acreate(
         engine="text-davinci-003",
         prompt=rendered,
         temperature=0,
@@ -150,7 +150,7 @@ async def decoder(messages: List[Message], Context):
                                Message("Decoder")]),
     )
     rendered = decoder.render()
-    response = openai.Completion.create(
+    response = await openai.Completion.acreate(
         engine="text-davinci-003",
         prompt=rendered,
         temperature=0,
@@ -191,7 +191,7 @@ async def encoder(messages: List[Message], webresults):
                 convo=Conversation(messages + [Message("System", f"Link = {web.link} , Snippet = {web.snippet} , Content = {web.content}" )] + [Message("Encoder")]),
             )
             rendered = encoder.render()
-            response = openai.Completion.create(
+            response = await openai.Completion.acreate(
                 engine="text-davinci-003",
                 prompt=rendered,
                 temperature=0,
@@ -381,7 +381,7 @@ async def generate_completion_response(
         rendered = prompt.render()
         ### Here it Ends what we butchered ###
         logger.info(f"DEBUG Rendered Prompt: {rendered}")
-        response = openai.Completion.create(
+        response = await openai.Completion.acreate(
             engine="text-davinci-003",
             prompt=rendered,
             temperature=0.2,
